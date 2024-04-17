@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import List
 from uuid import UUID
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
@@ -28,13 +29,26 @@ class ProductUsecase:
 
         return ProductOut(**result)
 
-    async def query(self) -> List[ProductOut]:
-        return [ProductOut(**item) async for item in self.collection.find()]
+    async def query(self, filter_value: bool) -> List[ProductOut]:
+
+        filter={}
+
+        if filter_value:
+            filter={"price": {"$lt": 8000, "$gt": 5000}}
+
+        return [ProductOut(**item) async for item in self.collection.find(
+            filter = filter
+        )]
+    
+
 
     async def update(self, id: UUID, body: ProductUpdate) -> ProductUpdateOut:
         result = await self.collection.find_one_and_update(
             filter={"id": id},
-            update={"$set": body.model_dump(exclude_none=True)},
+            update={
+                "$set": {"updated_at": datetime.now(utc=True)},
+                **body.model_dump(exclude_none=True),
+            },
             return_document=pymongo.ReturnDocument.AFTER,
         )
 
